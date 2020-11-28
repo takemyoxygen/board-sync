@@ -21,16 +21,18 @@ async function deleteOldWebhooks() {
   }
 }
 
-async function createWebhook(callbackUrl: string) {
+async function createWebhook(callbackUrl: string, board: string) {
   try {
-    console.log('Creating a weebhook for URL', callbackUrl);
+    console.log(
+      `Creating a weebhook for URL ${callbackUrl} for board ${board}`
+    );
     const respnse = await got.post(
       `https://api.trello.com/1/tokens/${env.API_TOKEN}/webhooks/?key=${env.API_KEY}`,
       {
         json: {
           description: 'Board Sync webhook',
           callbackURL: callbackUrl,
-          idModel: env.BOARD_ID
+          idModel: board
         }
       }
     );
@@ -48,7 +50,13 @@ async function createWebhook(callbackUrl: string) {
   }
 }
 
+async function createWebhooks(callbackUrl: string) {
+  for (const board of env.BOARDS) {
+    await createWebhook(callbackUrl, board);
+  }
+}
+
 export async function setup(callbackUrl: string) {
   await deleteOldWebhooks();
-  await createWebhook(callbackUrl);
+  await createWebhooks(callbackUrl);
 }

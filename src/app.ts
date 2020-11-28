@@ -1,9 +1,10 @@
 import express from 'express';
 import env from './env';
+import { Server } from 'http';
 
 const callbackPath = '/callback';
 
-export function start(handle: (event: any) => void): Promise<string> {
+export function start(handle: (event: any) => void): Promise<[string, Server]> {
   const app = express();
 
   app.use(express.json());
@@ -18,9 +19,9 @@ export function start(handle: (event: any) => void): Promise<string> {
   });
 
   return new Promise((resolve) => {
-    app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, () => {
       console.log(`Listening on port ${env.PORT}`);
-      resolve(callbackPath);
+      resolve([callbackPath, server]);
     });
   });
 }
