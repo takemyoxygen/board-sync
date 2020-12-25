@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "nodemon --exec ts-node src/index.ts",
+    "start": "nodemon --delay 3 --exec ts-node src/index.ts",
     "dev-setup": "ts-node src/dev.setup.ts"
   },
   "keywords": [],
@@ -25,6 +25,7 @@
     "envalid": "^6.0.2",
     "express": "^4.17.1",
     "got": "^11.8.0",
+    "node-cache": "^5.1.2",
     "winston": "^3.3.3"
   }
 }

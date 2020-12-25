@@ -4,6 +4,7 @@ import * as trello from './trello.client';
 import async from 'async';
 import fs from 'fs';
 import logger from './logger';
+import CachedStore from './cache';
 
 const queue = async.queue(processEvent);
 const ownActions = new Set<string>();
@@ -12,24 +13,31 @@ function anotherBoard(board: string): string {
   return env.BOARDS.find((b) => b !== board)!;
 }
 
-const mirrorCardCustomFieldName = 'MirrorCard';
+async function getMirrorCardCustomField(board: string): Promise<CustomField> {
+  logger.info('Getting Custom Fields', { board });
 
-async function handleCreateCard(event: CardCreated): Promise<Action[]> {
-  async function getMirrorCardCustomField(board: string): Promise<CustomField> {
-    const customFields = await trello.getCustomFields(board);
-    const mirrorCf = customFields.find(
-      (cf) => cf.name === mirrorCardCustomFieldName
+  const customFields = await trello.getCustomFields(board);
+  const mirrorCf = customFields.find(
+    (cf) => cf.name === mirrorCardCustomFieldName
+  );
+
+  if (!mirrorCf) {
+    throw new Error(
+      `Custom Field ${mirrorCardCustomFieldName} not found on board ${board}`
     );
-
-    if (!mirrorCf) {
-      throw new Error(
-        `Custom Field ${mirrorCardCustomFieldName} not found on board ${board}`
-      );
-    }
-
-    return mirrorCf;
   }
 
+  return mirrorCf;
+}
+
+const mirrorCardCustomFieldName = 'MirrorCard';
+
+const mirrorCustomFieldsCache = new CachedStore(
+  10 * 60,
+  getMirrorCardCustomField
+);
+
+async function handleCreateCard(event: CardCreated): Promise<Action[]> {
   async function getCopyingAction(list: string, card: Card): Promise<Action> {
     const actions = await trello.getListActions(list, 'copyCard');
 
@@ -74,8 +82,8 @@ async function handleCreateCard(event: CardCreated): Promise<Action[]> {
   const creationAction = await getCopyingAction(matchingList.id, createdCard);
 
   const [sourceCardCf, createdCardCf] = await Promise.all([
-    getMirrorCardCustomField(event.action.data.board.id),
-    getMirrorCardCustomField(syncToBoard)
+    mirrorCustomFieldsCache.get(event.action.data.board.id),
+    mirrorCustomFieldsCache.get(syncToBoard)
   ]);
 
   await Promise.all([
@@ -91,7 +99,7 @@ async function handleCreateCard(event: CardCreated): Promise<Action[]> {
     )
   ]);
 
-  logger.info('List creation action: ', creationAction.id);
+  logger.info('List creation action: ', { action: creationAction.id });
 
   return [creationAction];
 }
@@ -103,7 +111,7 @@ async function defaultHandler(event: Event) {
 
 async function processEvent(event: Event): Promise<void> {
   try {
-    logger.info('Received a message of type', event.action?.type);
+    logger.info('Received a message', { type: event.action?.type });
 
     if (ownActions.has(event.action.id)) {
       logger.info('This event was originated from board sync, skipping it');

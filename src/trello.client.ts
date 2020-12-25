@@ -31,9 +31,9 @@ export async function createWebhook(callbackUrl: string, board: string) {
       }
     });
 
-    logger.info('Webhook created: ', respnse.body);
+    logger.info('Webhook created: ');
   } catch (e) {
-    logger.error('Creating webhook failed', e);
+    logger.error('Creating webhook failed', { error: e });
   }
 }
 
@@ -42,7 +42,7 @@ export function getWebhooks(): Promise<Webhook[]> {
 }
 
 export async function deleteWebhook(webhookId: string): Promise<void> {
-  logger.info('Deleting webhook', webhookId);
+  logger.info('Deleting webhook', { webhookId });
   await gotEx.delete(tokenUrl(`/webhooks/${webhookId}`));
 }
 
