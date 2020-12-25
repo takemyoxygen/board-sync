@@ -2,6 +2,7 @@ import gotBase, { HTTPError, HandlerFunction } from 'got';
 import env from './env';
 import { URL } from 'url';
 import { Named } from './model';
+import logger from './logger';
 
 const errorConverter: HandlerFunction = async (options, next) => {
   try {
@@ -20,7 +21,7 @@ const gotEx = gotBase.extend({
 
 export async function createWebhook(callbackUrl: string, board: string) {
   try {
-    console.log(
+    logger.info(
       `Creating a weebhook for URL ${callbackUrl} for board ${board}`
     );
     const respnse = await gotEx.post(tokenUrl('/webhooks'), {
@@ -31,9 +32,9 @@ export async function createWebhook(callbackUrl: string, board: string) {
       }
     });
 
-    console.log('Webhook created: ', respnse.body);
+    logger.info('Webhook created: ', respnse.body);
   } catch (e) {
-    console.error('Creating webhook failed', e);
+    logger.error('Creating webhook failed', e);
   }
 }
 
@@ -46,7 +47,7 @@ export function getWebhooks(): Promise<Webhook[]> {
 }
 
 export async function deleteWebhook(webhookId: string): Promise<void> {
-  console.log('Deleting webhook', webhookId);
+  logger.info('Deleting webhook', webhookId);
   await gotEx.delete(tokenUrl(`/webhooks/${webhookId}`));
 }
 

@@ -2,6 +2,7 @@ import * as webhooks from './webhooks';
 import * as app from './app';
 import * as ngrok from './ngrok';
 import * as handler from './handler';
+import logger from './logger';
 
 async function main() {
   const [url, [callbackPath, server]] = await Promise.all([
@@ -11,9 +12,9 @@ async function main() {
 
   await webhooks.setup(`${url}${callbackPath}`);
 
-  console.log('Closing server...');
+  logger.info('Closing server...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
   });
 }
 

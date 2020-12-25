@@ -1,3 +1,2 @@
-- Logging
 - Unwrap got errors
 - Less smart trello client

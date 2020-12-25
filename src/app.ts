@@ -1,6 +1,7 @@
 import express from 'express';
 import env from './env';
 import { Server } from 'http';
+import logger from './logger';
 
 const callbackPath = '/callback';
 
@@ -20,7 +21,7 @@ export function start(handle: (event: any) => void): Promise<[string, Server]> {
 
   return new Promise((resolve) => {
     const server = app.listen(env.PORT, () => {
-      console.log(`Listening on port ${env.PORT}`);
+      logger.info(`Listening on port ${env.PORT}`);
       resolve([callbackPath, server]);
     });
   });
