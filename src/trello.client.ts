@@ -1,14 +1,29 @@
-import got, { HTTPError } from 'got/';
+import gotBase, { HTTPError, HandlerFunction } from 'got';
 import env from './env';
 import { URL } from 'url';
 import { Named } from './model';
+
+const errorConverter: HandlerFunction = async (options, next) => {
+  try {
+    return await next(options);
+  } catch (e) {
+    if (e instanceof HTTPError) {
+      throw new Error(`${e.code} - ${e.message}: ${e.response.body}`);
+    }
+    throw e;
+  }
+};
+
+const gotEx = gotBase.extend({
+  handlers: [errorConverter]
+});
 
 export async function createWebhook(callbackUrl: string, board: string) {
   try {
     console.log(
       `Creating a weebhook for URL ${callbackUrl} for board ${board}`
     );
-    const respnse = await got.post(tokenUrl('/webhooks'), {
+    const respnse = await gotEx.post(tokenUrl('/webhooks'), {
       json: {
         description: 'Board Sync webhook',
         callbackURL: callbackUrl,
@@ -18,13 +33,6 @@ export async function createWebhook(callbackUrl: string, board: string) {
 
     console.log('Webhook created: ', respnse.body);
   } catch (e) {
-    if (e instanceof HTTPError) {
-      console.error('Creating webhook failed', {
-        statusCode: e.code,
-        message: e.message,
-        response: e.response.body
-      });
-    }
     console.error('Creating webhook failed', e);
   }
 }
@@ -34,12 +42,12 @@ type Webhook = {
 };
 
 export function getWebhooks(): Promise<Webhook[]> {
-  return got.get(tokenUrl('/webhooks')).json<Webhook[]>();
+  return gotEx.get(tokenUrl('/webhooks')).json<Webhook[]>();
 }
 
 export async function deleteWebhook(webhookId: string): Promise<void> {
   console.log('Deleting webhook', webhookId);
-  await got.delete(tokenUrl(`/webhooks/${webhookId}`));
+  await gotEx.delete(tokenUrl(`/webhooks/${webhookId}`));
 }
 
 function tokenUrl(path: string, query: Record<string, string> = {}): string {
@@ -78,15 +86,35 @@ function restUrl(path: string, query: Record<string, string> = {}) {
 
 export type List = Named;
 export function getLists(board: string): Promise<List[]> {
-  return got.get(restUrl(`/1/boards/${board}/lists`)).json();
+  return gotEx.get(restUrl(`/1/boards/${board}/lists`)).json();
+}
+
+export type CustomField = Named;
+export function getCustomFields(board: string): Promise<CustomField[]> {
+  return gotEx.get(restUrl(`/1/boards/${board}/customFields`)).json();
+}
+
+export function setCustomFieldValue(
+  card: string,
+  customField: string,
+  value: string
+) {
+  return gotEx
+    .put(restUrl(`/1/cards/${card}/customField/${customField}/item`), {
+      json: {
+        value: { text: value }
+      }
+    })
+    .json();
 }
 
 export type Card = Named;
 export async function createCardCopy(
+  board: string,
   list: string,
   source: Card
 ): Promise<[Card, Action]> {
-  const card = await got
+  const card = await gotEx
     .post(restUrl(`/1/cards`), {
       json: {
         idCardSource: source.id,
@@ -95,9 +123,9 @@ export async function createCardCopy(
     })
     .json<Card>();
 
-  const action = await getCopyingAction(list, card);
+  const copyingAction = await getCopyingAction(list, card);
 
-  return [card, action];
+  return [card, copyingAction];
 }
 
 export type Action = {
@@ -111,7 +139,7 @@ export type Action = {
 };
 
 function getListActions(list: string, filter?: string): Promise<Action[]> {
-  return got
+  return gotEx
     .get(restUrl(`/1/lists/${list}/actions`, filter ? { filter } : {}))
     .json<Action[]>();
 }
