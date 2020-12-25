@@ -1,5 +1,5 @@
 import env from './env';
-import { CardCreated, Event } from './model';
+import { CardCreated, Event, Action, Card, CustomField } from './model';
 import * as trello from './trello.client';
 import async from 'async';
 import fs from 'fs';
@@ -14,10 +14,8 @@ function anotherBoard(board: string): string {
 
 const mirrorCardCustomFieldName = 'MirrorCard';
 
-async function handleCreateCard(event: CardCreated): Promise<trello.Action[]> {
-  async function getMirrorCardCustomField(
-    board: string
-  ): Promise<trello.CustomField> {
+async function handleCreateCard(event: CardCreated): Promise<Action[]> {
+  async function getMirrorCardCustomField(board: string): Promise<CustomField> {
     const customFields = await trello.getCustomFields(board);
     const mirrorCf = customFields.find(
       (cf) => cf.name === mirrorCardCustomFieldName
@@ -30,6 +28,20 @@ async function handleCreateCard(event: CardCreated): Promise<trello.Action[]> {
     }
 
     return mirrorCf;
+  }
+
+  async function getCopyingAction(list: string, card: Card): Promise<Action> {
+    const actions = await trello.getListActions(list, 'copyCard');
+
+    const creationAction = actions.find((a) => a.data.card.id === card.id);
+
+    if (!creationAction) {
+      throw new Error(
+        `Unable to find action which created a card ${card.id} "${card.name}"`
+      );
+    }
+
+    return creationAction;
   }
 
   const syncToBoard = anotherBoard(event.action.data.board.id);
@@ -53,11 +65,13 @@ async function handleCreateCard(event: CardCreated): Promise<trello.Action[]> {
 
   logger.info('Creating card in destination');
 
-  const [createdCard, action] = await trello.createCardCopy(
+  const createdCard = await trello.createCardCopy(
     syncToBoard,
     matchingList.id,
     event.action.data.card
   );
+
+  const creationAction = await getCopyingAction(matchingList.id, createdCard);
 
   const [sourceCardCf, createdCardCf] = await Promise.all([
     getMirrorCardCustomField(event.action.data.board.id),
@@ -77,9 +91,9 @@ async function handleCreateCard(event: CardCreated): Promise<trello.Action[]> {
     )
   ]);
 
-  logger.info('List creation action: ', action.id);
+  logger.info('List creation action: ', creationAction.id);
 
-  return [action];
+  return [creationAction];
 }
 
 async function defaultHandler(event: Event) {
