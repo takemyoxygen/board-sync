@@ -4,19 +4,18 @@ import { URL } from 'url';
 import { Named } from './model';
 import logger from './logger';
 
-const errorConverter: HandlerFunction = async (options, next) => {
-  try {
-    return await next(options);
-  } catch (e) {
-    if (e instanceof HTTPError) {
-      throw new Error(`${e.code} - ${e.message}: ${e.response.body}`);
-    }
-    throw e;
-  }
-};
-
 const gotEx = gotBase.extend({
-  handlers: [errorConverter]
+  hooks: {
+    beforeError: [
+      (err) => {
+        if (err.response?.body) {
+          err.message = `${err.response.statusCode} - ${err.message}: ${err.response.body}`;
+        }
+
+        return err;
+      }
+    ]
+  }
 });
 
 export async function createWebhook(callbackUrl: string, board: string) {
@@ -103,7 +102,7 @@ export function setCustomFieldValue(
   return gotEx
     .put(restUrl(`/1/cards/${card}/customField/${customField}/item`), {
       json: {
-        value: { text: value }
+        value1: { text: value }
       }
     })
     .json();
