@@ -117,11 +117,20 @@ export async function createCardCopy(
     .json<Card>();
 }
 
-export function getListActions(
+export function getListActions<A = Action>(
   list: string,
   filter?: string
-): Promise<Action[]> {
+): Promise<A[]> {
   return gotEx
     .get(restUrl(`/1/lists/${list}/actions`, filter ? { filter } : {}))
-    .json<Action[]>();
+    .json<A[]>();
+}
+
+export function getBoardActions<A = Action>(
+  board: string,
+  filter?: string
+): Promise<A[]> {
+  return gotEx
+    .get(restUrl(`/1/board/${board}/actions`, filter ? { filter } : {}))
+    .json<A[]>();
 }

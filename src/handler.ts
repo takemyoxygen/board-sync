@@ -1,5 +1,14 @@
 import env from './env';
-import { CardCreated, Event, Action, Card, CustomField } from './model';
+import {
+  CardCreated,
+  Event,
+  Action,
+  Card,
+  CustomField,
+  ActionType,
+  CopyCardAction,
+  UpdateCustomFieldAction
+} from './model';
 import * as trello from './trello.client';
 import async from 'async';
 import fs from 'fs';
@@ -37,9 +46,41 @@ const mirrorCustomFieldsCache = new CachedStore(
   getMirrorCardCustomField
 );
 
+async function setMirroredCard(
+  board: string,
+  card: Card,
+  mirror: Card
+): Promise<Action | undefined> {
+  const cf = await mirrorCustomFieldsCache.get(board);
+  await trello.setCustomFieldValue(card.id, cf.id, mirror.id);
+  const actions = await trello.getBoardActions<UpdateCustomFieldAction>(
+    board,
+    ActionType.UpdateCustomFieldItem
+  );
+
+  const matchingAction = actions.find(
+    (a) =>
+      a.data.card.id === card.id &&
+      a.data.customFieldItem.value?.text === mirror.id
+  );
+
+  if (!matchingAction) {
+    logger.warn('Unable to find action', {
+      type: ActionType.UpdateCustomFieldItem,
+      board,
+      card: card.id
+    });
+  }
+
+  return matchingAction;
+}
+
 async function handleCreateCard(event: CardCreated): Promise<Action[]> {
   async function getCopyingAction(list: string, card: Card): Promise<Action> {
-    const actions = await trello.getListActions(list, 'copyCard');
+    const actions = await trello.getListActions<CopyCardAction>(
+      list,
+      ActionType.CopyCard
+    );
 
     const creationAction = actions.find((a) => a.data.card.id === card.id);
 
@@ -81,27 +122,18 @@ async function handleCreateCard(event: CardCreated): Promise<Action[]> {
 
   const creationAction = await getCopyingAction(matchingList.id, createdCard);
 
-  const [sourceCardCf, createdCardCf] = await Promise.all([
-    mirrorCustomFieldsCache.get(event.action.data.board.id),
-    mirrorCustomFieldsCache.get(syncToBoard)
-  ]);
+  logger.info('Setting CF value to track ID of the mirrored card');
 
-  await Promise.all([
-    trello.setCustomFieldValue(
-      event.action.data.card.id,
-      sourceCardCf.id,
-      createdCard.id
+  const cfActions = await Promise.all([
+    setMirroredCard(
+      event.action.data.board.id,
+      event.action.data.card,
+      createdCard
     ),
-    trello.setCustomFieldValue(
-      createdCard.id,
-      createdCardCf.id,
-      event.action.data.card.id
-    )
+    setMirroredCard(syncToBoard, createdCard, event.action.data.card)
   ]);
 
-  logger.info('List creation action: ', { action: creationAction.id });
-
-  return [creationAction];
+  return [creationAction, ...(cfActions.filter((a) => !!a) as Action[])];
 }
 
 async function defaultHandler(event: Event) {
@@ -118,8 +150,9 @@ async function processEvent(event: Event): Promise<void> {
       return;
     }
 
-    if (event.action.type === 'createCard') {
-      const actions = await handleCreateCard(event);
+    if (event.action.type === ActionType.CreateCard) {
+      const cardCreated = event as CardCreated;
+      const actions = await handleCreateCard(cardCreated);
       actions.forEach((a) => ownActions.add(a.id));
     } else {
       defaultHandler(event);
