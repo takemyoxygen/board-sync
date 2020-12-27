@@ -16,17 +16,34 @@ export type Webhook = {
 export enum ActionType {
   CreateCard = 'createCard',
   UpdateCustomFieldItem = 'updateCustomFieldItem',
-  CopyCard = 'copyCard'
+  CopyCard = 'copyCard',
+  UpdateCard = 'updateCard'
 }
 
-export type Action<Type = string, Data = {}> = {
+export type Action<Type = string, Data = {}, Card = Named> = {
   id: string;
   data: {
-    card: Named;
+    card: Card;
     board: Named;
   } & Data;
   type: Type;
 };
+
+export type CopyCardAction = Action<ActionType.CopyCard>;
+
+export type UpdateCardData = {
+  name?: string;
+  idList?: string;
+  desc?: string;
+  closed?: boolean;
+  due?: string;
+  dueComplete?: boolean;
+};
+export type UpdateCardAction = Action<
+  ActionType.UpdateCard,
+  { old: UpdateCardData },
+  Named & UpdateCardData
+>;
 
 type UpdateCustomFieldData = {
   customField: Named;
@@ -43,8 +60,6 @@ export type UpdateCustomFieldAction = Action<
   UpdateCustomFieldData
 >;
 
-export type Event = CardCreated | UnsupportedEvent;
-
 type BaseEvent<A = Action> = {
   model: Named;
   action: A;
@@ -53,6 +68,21 @@ type BaseEvent<A = Action> = {
 export type CardCreated = BaseEvent<
   Action<ActionType.CreateCard, { list: Named }>
 >;
-export type CopyCardAction = Action<ActionType.CopyCard>;
 
 export type UnsupportedEvent = BaseEvent;
+export type CardUpdated = BaseEvent<UpdateCardAction>;
+
+export type Event = CardCreated | CardUpdated | UnsupportedEvent;
+
+export enum ModelType {
+  Card = 'card',
+  Board = 'board',
+  Member = 'member'
+}
+
+export type CustomFieldItem = {
+  id: string;
+  idCustomField: string;
+  value: { text?: string };
+  modelType: ModelType;
+};

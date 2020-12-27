@@ -1,7 +1,16 @@
 import gotBase from 'got';
 import env from './env';
 import { URL } from 'url';
-import { Named, CustomField, List, Webhook, Card, Action } from './model';
+import {
+  Named,
+  CustomField,
+  List,
+  Webhook,
+  Card,
+  Action,
+  UpdateCardData,
+  CustomFieldItem
+} from './model';
 import logger from './logger';
 
 const gotEx = gotBase.extend({
@@ -133,4 +142,23 @@ export function getBoardActions<A = Action>(
   return gotEx
     .get(restUrl(`/1/board/${board}/actions`, filter ? { filter } : {}))
     .json<A[]>();
+}
+
+export function updateCard(
+  card: string,
+  update: UpdateCardData
+): Promise<void> {
+  return gotEx
+    .put(restUrl(`/1/card/${card}`), {
+      json: update
+    })
+    .json();
+}
+
+export function getCardCustomFieldItems(
+  card: string
+): Promise<CustomFieldItem[]> {
+  return gotEx
+    .get(restUrl(`/1/cards/${card}/customFieldItems`))
+    .json<CustomFieldItem[]>();
 }

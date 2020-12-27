@@ -2,6 +2,7 @@ import { Event, ActionType } from '../model';
 import { handleCreateCard } from './create.card';
 import { Handler } from './common';
 import fs from 'fs';
+import { handleUpdateCard } from './update.card';
 
 const handlers: Record<string, Handler<Event>> = {};
 
@@ -23,3 +24,4 @@ export function getHandler<T extends Event>(evt: Event): Handler<T> {
 }
 
 registerHandler(ActionType.CreateCard, handleCreateCard);
+registerHandler(ActionType.UpdateCard, handleUpdateCard);

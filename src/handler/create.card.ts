@@ -1,4 +1,4 @@
-import logger from '../logger';
+import { Logger } from '../logger';
 import {
   CardCreated,
   Action,
@@ -13,7 +13,8 @@ import { anotherBoard, Handler, mirrorCustomFieldsCache } from './common';
 async function setMirroredCard(
   board: string,
   card: Card,
-  mirror: Card
+  mirror: Card,
+  logger: Logger
 ): Promise<Action | undefined> {
   const cf = await mirrorCustomFieldsCache.get(board);
   await trello.setCustomFieldValue(card.id, cf.id, mirror.id);
@@ -57,7 +58,8 @@ async function getCopyingAction(list: string, card: Card): Promise<Action> {
 }
 
 export const handleCreateCard: Handler<CardCreated> = async (
-  event
+  event,
+  logger
 ): Promise<Action[]> => {
   const syncToBoard = anotherBoard(event.action.data.board.id);
   const lists = await trello.getLists(syncToBoard);
@@ -94,9 +96,10 @@ export const handleCreateCard: Handler<CardCreated> = async (
     setMirroredCard(
       event.action.data.board.id,
       event.action.data.card,
-      createdCard
+      createdCard,
+      logger
     ),
-    setMirroredCard(syncToBoard, createdCard, event.action.data.card)
+    setMirroredCard(syncToBoard, createdCard, event.action.data.card, logger)
   ]);
 
   return [creationAction, ...(cfActions.filter((a) => !!a) as Action[])];

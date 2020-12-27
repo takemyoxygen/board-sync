@@ -1,6 +1,6 @@
 import env from '../env';
 import CachedStore from '../cache';
-import logger from '../logger';
+import logger, { Logger } from '../logger';
 import { Action, CustomField, Event } from '../model';
 import * as trello from '../trello.client';
 
@@ -34,4 +34,7 @@ export function anotherBoard(board: string): string {
   return env.BOARDS.find((b) => b !== board)!;
 }
 
-export type Handler<T extends Event> = (event: T) => Promise<Action[]>;
+export type Handler<T extends Event> = (
+  event: T,
+  logger: Logger
+) => Promise<Action[]>;

@@ -1,0 +1,3 @@
+- Update card:
+  - track performed actions
+  - handle list change
