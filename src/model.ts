@@ -41,7 +41,7 @@ export type UpdateCardData = {
 };
 export type UpdateCardAction = Action<
   ActionType.UpdateCard,
-  { old: UpdateCardData },
+  { old: UpdateCardData; listBefore?: Named; listAfter?: Named },
   Named & UpdateCardData
 >;
 

@@ -8,7 +8,12 @@ import {
   UpdateCustomFieldAction
 } from '../model';
 import * as trello from '../trello.client';
-import { anotherBoard, Handler, mirrorCustomFieldsCache } from './common';
+import {
+  anotherBoard,
+  getList,
+  Handler,
+  mirrorCustomFieldsCache
+} from './common';
 
 async function setMirroredCard(
   board: string,
@@ -62,15 +67,7 @@ export const handleCreateCard: Handler<CardCreated> = async (
   logger
 ): Promise<Action[]> => {
   const syncToBoard = anotherBoard(event.action.data.board.id);
-  const lists = await trello.getLists(syncToBoard);
-
-  logger.info(
-    `Found ${lists.length} on board ${syncToBoard} where new card should be created`
-  );
-
-  const matchingList = lists.find(
-    (list) => list.name === event.action.data.list.name
-  );
+  const matchingList = await getList(syncToBoard, event.action.data.list.name);
 
   if (!matchingList) {
     logger.info(

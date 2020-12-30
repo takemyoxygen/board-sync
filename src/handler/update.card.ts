@@ -6,7 +6,7 @@ import {
   UpdateCardAction,
   UpdateCardData
 } from '../model';
-import { getMirrorCardCustomField, Handler } from './common';
+import { getList, getMirrorCardCustomField, Handler } from './common';
 import * as trello from '../trello.client';
 
 export const handleUpdateCard: Handler<CardUpdated> = async (event, logger) => {
@@ -40,6 +40,24 @@ export const handleUpdateCard: Handler<CardUpdated> = async (event, logger) => {
   }
 
   const mirrorCard = await trello.getCard(mirrorCardId!);
+
+  if (update.idList && event.action.data.listAfter) {
+    const targetList = await getList(
+      mirrorCard.idBoard,
+      event.action.data.listAfter.name
+    );
+    if (!targetList) {
+      logger.warn(
+        'Unable to find list with matching name on the target board. Skipping the event',
+        {
+          targetBoard: mirrorCard.idBoard,
+          targetListName: event.action.data.listAfter.name
+        }
+      );
+      return [];
+    }
+    update.idList = targetList?.id;
+  }
 
   logger.info('Updating the mirrorred card', { mirrorCardId });
 

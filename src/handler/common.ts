@@ -1,7 +1,7 @@
 import env from '../env';
 import CachedStore from '../cache';
 import logger, { Logger } from '../logger';
-import { Action, CustomField, Event } from '../model';
+import { Action, CustomField, Event, List } from '../model';
 import * as trello from '../trello.client';
 
 const mirrorCardCustomFieldName = 'MirrorCard';
@@ -38,3 +38,12 @@ export type Handler<T extends Event> = (
   event: T,
   logger: Logger
 ) => Promise<Action[]>;
+
+export async function getList(
+  board: string,
+  listName: string
+): Promise<List | undefined> {
+  const lists = await trello.getLists(board);
+
+  return lists.find((l) => l.name === listName);
+}

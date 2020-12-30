@@ -33,7 +33,7 @@ export async function createWebhook(callbackUrl: string, board: string) {
     logger.info(
       `Creating a weebhook for URL ${callbackUrl} for board ${board}`
     );
-    const respnse = await gotEx.post(tokenUrl('/webhooks'), {
+    await gotEx.post(tokenUrl('/webhooks'), {
       json: {
         description: 'Board Sync webhook',
         callbackURL: callbackUrl,
