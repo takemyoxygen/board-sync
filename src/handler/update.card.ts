@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'url';
 import {
+  ActionType,
   CardUpdated,
   ModelType,
   UpdateCardAction,
@@ -38,9 +39,31 @@ export const handleUpdateCard: Handler<CardUpdated> = async (event, logger) => {
     return [];
   }
 
+  const mirrorCard = await trello.getCard(mirrorCardId!);
+
   logger.info('Updating the mirrorred card', { mirrorCardId });
 
   await trello.updateCard(mirrorCardId!, update);
 
-  return [];
+  const cardUpdates = await trello.getBoardActions<UpdateCardAction>(
+    mirrorCard.idBoard,
+    ActionType.UpdateCard
+  );
+
+  const ownCardUpdateAction = cardUpdates.find(
+    (upd) =>
+      upd.data.card.id === mirrorCardId &&
+      changedFields.every(
+        (f) => upd.data.old.hasOwnProperty(f) && upd.data.card[f] === update[f]
+      )
+  );
+
+  if (!ownCardUpdateAction) {
+    logger.error('Unable to find just performed card update action');
+    return [];
+  }
+
+  logger.info('Found just performed card update action');
+
+  return [ownCardUpdateAction];
 };

@@ -9,7 +9,8 @@ import {
   Card,
   Action,
   UpdateCardData,
-  CustomFieldItem
+  CustomFieldItem,
+  CardDetails
 } from './model';
 import logger from './logger';
 
@@ -161,4 +162,8 @@ export function getCardCustomFieldItems(
   return gotEx
     .get(restUrl(`/1/cards/${card}/customFieldItems`))
     .json<CustomFieldItem[]>();
+}
+
+export function getCard(card: string): Promise<CardDetails> {
+  return gotEx.get(restUrl(`/1/card/${card}`)).json();
 }

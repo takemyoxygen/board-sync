@@ -31,7 +31,7 @@ async function processEvent(event: Event): Promise<void> {
     actions.forEach((a) => ownActions.add(a.id));
   } catch (e) {
     eventLogger.error(`Failed to process event`, {
-      error: e,
+      error: e.message ?? e,
       type: event.action.type,
       action: event.action.id
     });

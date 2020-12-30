@@ -86,3 +86,8 @@ export type CustomFieldItem = {
   value: { text?: string };
   modelType: ModelType;
 };
+
+export type CardDetails = Card & {
+  idBoard: string;
+  idList: string;
+};
